@@ -2,6 +2,10 @@ import * as cdk from "@aws-cdk/core";
 import * as sfn from "@aws-cdk/aws-stepfunctions";
 import * as apigateway from "@aws-cdk/aws-apigateway";
 import * as iam from "@aws-cdk/aws-iam";
+import * as sns from "@aws-cdk/aws-sns";
+import * as ssm from "@aws-cdk/aws-ssm";
+import * as events from "@aws-cdk/aws-events";
+import * as targets from "@aws-cdk/aws-events-targets";
 
 export class CdkstepfunctionsApigwStack extends cdk.Stack {
   constructor(scope: cdk.Construct, id: string, props?: cdk.StackProps) {
@@ -88,7 +92,7 @@ export class CdkstepfunctionsApigwStack extends cdk.Stack {
         burstLimit: 1
       },
       quota: {
-        limit: 10,
+        limit: 20,
         period: apigateway.Period.DAY
       }
     })
@@ -100,5 +104,29 @@ export class CdkstepfunctionsApigwStack extends cdk.Stack {
     new cdk.CfnOutput(this, 'output', {
       value: APIKEY_VALUE
     })
+    
+    // sns
+    
+    const ssm_stringvalue = ssm.StringParameter.fromStringParameterName(
+      this,
+      "ssm_stringvalue",
+      "cdksns-general-notify-topic-arn"
+    ).stringValue
+    
+    const topic = sns.Topic.fromTopicArn(this, "topic", ssm_stringvalue)
+
+    const sns_topic_target = new targets.SnsTopic(topic);
+
+    const rule = new events.Rule(this, "rule", {
+      eventPattern: {
+        source: ["aws.states"],
+        detail: {
+          status: ["FAILED", "SUCCEEDED", "TIMED_OUT", "RUNNING"],
+          stateMachineArn: [state_machine.stateMachineArn],
+        },
+      },
+      ruleName: PREFIX_NAME + "-rule",
+      targets: [sns_topic_target],
+    });
   }
 }
