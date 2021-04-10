@@ -2,10 +2,6 @@ import * as cdk from "@aws-cdk/core";
 import * as sfn from "@aws-cdk/aws-stepfunctions";
 import * as apigateway from "@aws-cdk/aws-apigateway";
 import * as iam from "@aws-cdk/aws-iam";
-import * as sns from "@aws-cdk/aws-sns";
-import * as ssm from "@aws-cdk/aws-ssm";
-import * as events from "@aws-cdk/aws-events";
-import * as targets from "@aws-cdk/aws-events-targets";
 
 export class CdkstepfunctionsApigwStack extends cdk.Stack {
   constructor(scope: cdk.Construct, id: string, props?: cdk.StackProps) {
@@ -16,13 +12,11 @@ export class CdkstepfunctionsApigwStack extends cdk.Stack {
     
     // state machine
     
-    const pass_task = new sfn.Pass(this, "pass_tasks");
-    
-    const wait_task = new sfn.Wait(this, "wait_task", {
+    const task = new sfn.Wait(this, "task", {
       time: sfn.WaitTime.duration(cdk.Duration.seconds(30)),
     })
     
-    const definition = pass_task.next(wait_task)
+    const definition = task
 
     const state_machine = new sfn.StateMachine(this, "state_machine", {
       definition,
@@ -104,29 +98,5 @@ export class CdkstepfunctionsApigwStack extends cdk.Stack {
     new cdk.CfnOutput(this, 'output', {
       value: APIKEY_VALUE
     })
-    
-    // sns
-    
-    const ssm_stringvalue = ssm.StringParameter.fromStringParameterName(
-      this,
-      "ssm_stringvalue",
-      "cdksns-general-notify-topic-arn"
-    ).stringValue
-    
-    const topic = sns.Topic.fromTopicArn(this, "topic", ssm_stringvalue)
-
-    const sns_topic_target = new targets.SnsTopic(topic);
-
-    const rule = new events.Rule(this, "rule", {
-      eventPattern: {
-        source: ["aws.states"],
-        detail: {
-          status: ["FAILED", "SUCCEEDED", "TIMED_OUT", "RUNNING"],
-          stateMachineArn: [state_machine.stateMachineArn],
-        },
-      },
-      ruleName: PREFIX_NAME + "-rule",
-      targets: [sns_topic_target],
-    });
   }
 }

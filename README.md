@@ -1,6 +1,6 @@
 Example CDK TypeScript Project
 
-To deploy ApiGateway .
+To deploy state machine with ApiGateway as excution trigger.
 
 * `npm install`
 * `cdk deploy`
