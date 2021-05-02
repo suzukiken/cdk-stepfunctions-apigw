@@ -5,4 +5,4 @@ To deploy state machine with ApiGateway as excution trigger.
 * `npm install`
 * `cdk deploy`
 
-[description](https://figmentresearch.com/aws/cdkstepfunctions-apigw)
+[description](https://note.figmentresearch.com/aws/cdkstepfunctions-apigw)
